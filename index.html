@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教室座位表</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    :root{--bg:#f6f8fc;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe3ef}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
+    header{padding:28px 20px 18px;text-align:center;background:linear-gradient(135deg,#1d4ed8,#0f766e);color:#fff}
+    h1{margin:0 0 6px;font-size:clamp(24px,4vw,38px)}header p{margin:0;color:rgba(255,255,255,.9)}
+    main{width:min(1180px,94vw);margin:auto}
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 18px}
+    button{border:0;border-radius:10px;padding:10px 15px;font-size:15px;cursor:pointer;background:#e8eef8;color:var(--ink)}
+    button.primary{background:var(--accent);color:white}
+    .status{color:var(--muted);font-size:14px;text-align:center;margin:10px 0}
+    .room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(12px,3vw,26px);box-shadow:0 8px 30px #1e3a8a0d}
+    .front{margin:0 auto 18px;text-align:center;background:#172033;color:white;border-radius:9px;padding:10px;font-weight:700;letter-spacing:.15em}
+    .grid{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:10px}
+    .seat{min-height:102px;border:2px dashed #cbd5e1;border-radius:13px;padding:9px;background:#fbfdff;transition:.15s;cursor:grab;user-select:none}
+    .seat.empty{display:grid;place-items:center;color:#94a3b8;cursor:default}
+    .seat.dragging{opacity:.35}
+    .seat.over{border-color:var(--accent);background:#eff6ff;transform:scale(1.02)}
+    .num{font-size:12px;color:var(--muted)}
+    .name{font-size:18px;font-weight:800;margin:7px 0 5px}
+    .meta{font-size:12px;color:var(--muted)}
+    .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+    label{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
+    input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px}
+    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}}
+    @media print{header,.toolbar,.controls,.status{display:none!important}.room{border:1px solid #000;box-shadow:none}}
+  </style>
+</head>
+<body>
+<header><h1>教室座位表產生器</h1><p>Classroom Seating Chart Generator</p></header>
+<main>
+  <div class="controls">
+    <div><label>上傳點名表</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
+    <div><label>每排座位數</label><select id="cols"><option>5</option><option selected>6</option><option>7</option><option>8</option></select></div>
+    <div><label>排列方式</label><select id="order"><option value="row">由前到後</option><option value="column">由左到右</option><option value="number">依座號</option></select></div>
+    <div><label>標題</label><input id="title" value="教室座位表"></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" onclick="autoFill()">自動填滿</button>
+    <button onclick="clearSeats()">清除</button>
+    <button class="primary" onclick="downloadExcel()">Excel</button>
+    <button class="primary" onclick="downloadPDF()">PDF</button>
+    <button class="primary" onclick="saveLocal()">儲存本機</button>
+    <button onclick="loadLocal()">從本機載入</button>
+  </div>
+
+  <div class="room">
+    <div class="front" id="frontTitle">講台</div>
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <div class="status" id="status">操作：以滑鼠拖放座位即可交換</div>
+</main>
+<script>
+const students=[];
+let order=[],cols=6,dragged=null;
+const $=id=>document.getElementById(id);
+
+function load(){try{let x=JSON.parse(localStorage.getItem('seating-v1'));return Array.isArray(x)?x:null}catch(e){return null}}
+
+function render(){
+  const grid=$('grid');
+  grid.innerHTML='';
+  grid.style.gridTemplateColumns='repeat('+cols+',minmax(90px,1fr))';
+  
+  order.forEach((no,i)=>{
+    const s=no!==null?students.find(x=>x.no===no):null;
+    const el=document.createElement('div');
+    el.className='seat'+(s?'':' empty');
+    el.draggable=!!s;
+    el.dataset.index=i;
+    el.innerHTML=s?`<span class="num">座號 ${s.no}</span><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.className)}｜${esc(s.id)}</div>`:`<span class="num">空位</span>`;
+    
+    if(s){
+      el.addEventListener('dragstart',()=>{dragged=i;el.classList.add('dragging')});
+      el.addEventListener('dragend',()=>{dragged=null;el.classList.remove('dragging');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'))})
+    }
+    
+    el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
+    el.addEventListener('dragleave',()=>el.classList.remove('over'));
+    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');if(dragged!==null&&dragged!==i){[order[dragged],order[i]]=[order[i],order[dragged]];render();$('status').textContent='已調整座位'}});
+    
+    grid.appendChild(el)
+  })
+}
+
+function esc(v){return String(v||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+
+function autoFill(){
+  order=[];
+  const list=[...students];
+  if($('order').value==='number')list.sort((a,b)=>(a.className+'-'+a.number).localeCompare(b.className+'-'+b.number));
+  const total=cols*Math.ceil(list.length/cols);
+  for(let i=0;i<total;i++){order.push(i<list.length?list[i].no:null)}
+  render();
+  $('status').textContent='已自動排列'
+}
+
+function clearSeats(){
+  order=[];
+  const total=cols*Math.ceil(students.length/cols);
+  for(let i=0;i<total;i++){order.push(null)}
+  render();
+  $('status').textContent='已清除'
+}
+
+$('fileInput').addEventListener('change',function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      let hi=-1;
+      for(let i=0;i<Math.min(rows.length,5);i++){if(rows[i].some(v=>String(v).includes('學號'))){hi=i;break}}
+      if(hi<0)throw new Error('找不到學號欄位');
+      const h=rows[hi].map(v=>String(v).trim().toLowerCase());
+      const ix={id:h.findIndex(v=>v.includes('學號')),cls:h.findIndex(v=>v.includes('班級')),no:h.findIndex(v=>v.includes('座號')),name:h.findIndex(v=>v.includes('姓名'))};
+      if(ix.id<0||ix.cls<0||ix.no<0||ix.name<0)throw new Error('缺少必要欄位');
+      students.length=0;
+      let no=1;
+      rows.slice(hi+1).forEach(function(r){
+        const id=String(r[ix.id]||'').trim(),cls=String(r[ix.cls]||'').trim(),num=String(r[ix.no]||'').trim(),name=String(r[ix.name]||'').trim();
+        if(id&&name)students.push({no:no++,id,className:cls,number:num,name})
+      });
+      cols=Number($('cols').value);
+      autoFill();
+      $('status').textContent='已載入 '+students.length+' 位學生'
+    }catch(err){$('status').textContent='失敗：'+err.message}
+  };
+  r.readAsArrayBuffer(f)
+});
+
+$('cols').addEventListener('change',function(){cols=Number($('cols').value);autoFill()});
+$('title').addEventListener('input',function(e){$('frontTitle').textContent=e.target.value||'講台'});
+
+function saveLocal(){localStorage.setItem('seating-v1',JSON.stringify({students,order,cols}));$('status').textContent='已儲存到本機'}
+function loadLocal(){const r=localStorage.getItem('seating-v1');if(!r){$('status').textContent='本機無資料';return}const d=JSON.parse(r);students.length=0;d.students.forEach(s=>students.push(s));order=d.order;cols=d.cols||6;$('cols').value=cols;render();$('status').textContent='已從本機載入 '+students.length+' 人'}
+
+function downloadExcel(){
+  const d=order.map((no,i)=>{const s=no!==null?students.find(x=>x.no===no):null;return{'座位':i+1,'班級':s?s.className:'','座號':s?s.number:'','姓名':s?s.name:'','學號':s?s.id:''}});
+  const ws=XLSX.utils.json_to_sheet(d),wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'座位');
+  XLSX.writeFile(wb,'seating.xlsx')
+}
+
+function downloadPDF(){
+  html2canvas($('.room'),{scale:2}).then(function(canvas){
+    const jsPDF=window.jspdf.jsPDF,pdf=new jsPDF('landscape','mm','a4');
+    let w=277,h=canvas.height*w/canvas.width;
+    if(h>180){h=180;w=canvas.width*h/canvas.width}
+    pdf.text($('title').value,14,12);
+    pdf.addImage(canvas.toDataURL(),'PNG',14,18,w,h);
+    pdf.save('seating.pdf')
+  })
+}
+
+window.onload=function(){
+  const saved=load();
+  if(saved){order=saved;const d=localStorage.getItem('seating-v1');if(d){const data=JSON.parse(d);students.length=0;data.students.forEach(s=>students.push(s));cols=data.cols||6;$('cols').value=cols;render();$('status').textContent='從本機載入 '+students.length+' 人'}}
+};
+</script>
+</body>
+</html>

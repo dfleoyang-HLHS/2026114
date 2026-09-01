@@ -52,6 +52,7 @@
     <button class="primary" onclick="saveLocal()">儲存本機</button>
     <button onclick="loadLocal()">從本機載入</button>
     <button class="primary" onclick="uploadToGithub()">📤 上傳 GitHub</button>
+    <button class="primary" onclick="loadFromGithub()">📥 從 GitHub 載入</button>
   </div>
 
   <div class="room">
@@ -62,14 +63,19 @@
   <div class="status" id="status">操作：以滑鼠拖放座位即可交換｜列印時選擇「另存為 PDF」</div>
 
   <div class="github">
-    <h3 style="margin:0 0 10px">GitHub 上傳設定</h3>
+    <h3 style="margin:0 0 10px">GitHub 設定</h3>
     <div class="github-grid">
       <div><label>使用者名稱</label><input id="ghUser" value="dfleoyang-HLHS"></div>
       <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
       <div><label>Token</label><input id="ghToken" type="password" placeholder="ghp_..."></div>
       <div><label>分支</label><input id="ghBranch" value="main"></div>
+      <div><label>選擇檔案</label><select id="ghFile"><option value="">-- 選擇或輸入檔案名 --</option></select></div>
     </div>
-    <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳的檔案名稱將為「標題名.json」（例如：教室座位表.json）</p>
+    <div style="margin-top:10px">
+      <button onclick="listGithubFiles()">📋 列出 GitHub 檔案</button>
+      <button onclick="loadFromGithub()">📥 載入選擇的檔案</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳/載入的檔案名稱為「標題名.json」（例如：教室座位表.json）</p>
   </div>
 </main>
 <script>
@@ -212,13 +218,10 @@ function uploadToGithub(){
   
   const api='https://api.github.com/repos/'+user+'/'+repo+'/contents/'+encodeURIComponent(filename);
   
-  // 先檢查檔案是否存在
   fetch(api+'?ref='+branch,{headers:{Authorization:'Bearer '+token}}).then(function(r){
     if(r.ok){
-      // 檔案存在，取得 SHA
       return r.json().then(function(d){return d.sha})
     }else if(r.status===404){
-      // 檔案不存在
       return null
     }else{
       throw new Error('HTTP '+r.status)
@@ -241,12 +244,89 @@ function uploadToGithub(){
   }).then(function(result){
     if(result.content&&result.content.html_url){
       $('status').textContent='上傳成功！檔案：'+filename;
+      listGithubFiles();
       console.log('Uploaded to:',result.content.html_url)
     }else{
       $('status').textContent='上傳失敗：'+(result.message||'未知錯誤')
     }
   }).catch(function(e){
     $('status').textContent='上傳失敗：'+e.message
+  })
+}
+
+function listGithubFiles(){
+  const user=$('ghUser').value.trim();
+  const repo=$('ghRepo').value.trim();
+  const token=$('ghToken').value.trim();
+  const branch=$('ghBranch').value.trim()||'main';
+  
+  if(!user||!repo){
+    $('status').textContent='請填寫 GitHub 使用者名稱和儲存庫';
+    return
+  }
+  
+  $('status').textContent='列出檔案中...';
+  
+  const api='https://api.github.com/repos/'+user+'/'+repo+'/contents?ref='+encodeURIComponent(branch);
+  const headers=token?{Authorization:'Bearer '+token}:{};
+  
+  fetch(api,{headers:headers}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json()
+  }).then(function(files){
+    const select=$('ghFile');
+    select.innerHTML='<option value="">-- 選擇檔案 --</option>';
+    files.forEach(function(f){
+      if(f.name.endsWith('.json')){
+        const opt=document.createElement('option');
+        opt.value=f.name;
+        opt.textContent=f.name;
+        select.appendChild(opt)
+      }
+    });
+    $('status').textContent='已找到 '+select.options.length+' 個 JSON 檔案'
+  }).catch(function(e){
+    $('status').textContent='列出失敗：'+e.message
+  })
+}
+
+function loadFromGithub(){
+  const user=$('ghUser').value.trim();
+  const repo=$('ghRepo').value.trim();
+  const branch=$('ghBranch').value.trim()||'main';
+  const filename=$('ghFile').value.trim()||($('title').value.trim()||'教室座位表')+'.json';
+  
+  if(!user||!repo){
+    $('status').textContent='請填寫 GitHub 使用者名稱和儲存庫';
+    return
+  }
+  
+  $('status').textContent='載入中...';
+  
+  const url='https://raw.githubusercontent.com/'+user+'/'+repo+'/'+encodeURIComponent(branch)+'/'+encodeURIComponent(filename);
+  
+  fetch(url).then(function(r){
+    if(!r.ok){
+      if(r.status===404)throw new Error('找不到檔案：'+filename);
+      throw new Error('HTTP '+r.status)
+    }
+    return r.json()
+  }).then(function(data){
+    students.length=0;
+    if(data.students){
+      data.students.forEach(function(s){students.push(s)})
+    }
+    order=data.order||[];
+    cols=data.cols||6;
+    if(data.title){
+      $('title').value=data.title;
+      $('frontTitle').textContent=data.title
+    }
+    $('cols').value=cols;
+    render();
+    $('status').textContent='已載入 '+students.length+' 人（'+filename+'）'
+  }).catch(function(e){
+    $('status').textContent='載入失敗：'+e.message
   })
 }
 

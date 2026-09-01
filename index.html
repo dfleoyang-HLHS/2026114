@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>教室座位表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root{--bg:#f6f8fc;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe3ef}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
@@ -48,7 +46,7 @@
     <button class="primary" onclick="autoFill()">自動填滿</button>
     <button onclick="clearSeats()">清除</button>
     <button class="primary" onclick="downloadExcel()">Excel</button>
-    <button class="primary" onclick="downloadPDF()">PDF</button>
+    <button class="primary" onclick="window.print()">列印 / PDF</button>
     <button class="primary" onclick="saveLocal()">儲存本機</button>
     <button onclick="loadLocal()">從本機載入</button>
   </div>
@@ -58,7 +56,7 @@
     <div id="grid" class="grid"></div>
   </div>
 
-  <div class="status" id="status">操作：以滑鼠拖放座位即可交換</div>
+  <div class="status" id="status">操作：以滑鼠拖放座位即可交換｜列印時選擇「另存為 PDF」</div>
 </main>
 <script>
 const students=[];
@@ -173,27 +171,6 @@ function downloadExcel(){
   const ws=XLSX.utils.json_to_sheet(d),wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'座位');
   XLSX.writeFile(wb,'seating.xlsx')
-}
-
-function downloadPDF(){
-  try{
-    const room=$('.room');
-    html2canvas(room,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
-      const {jsPDF}=window.jspdf;
-      const pdf=new jsPDF('landscape','mm','a4');
-      const imgData=canvas.toDataURL('image/png');
-      const pdfWidth=280;
-      const pdfHeight=(canvas.height*pdfWidth)/canvas.width;
-      pdf.text($('title').value||'教室座位表',14,12);
-      pdf.addImage(imgData,'PNG',14,20,pdfWidth,pdfHeight);
-      pdf.save('seating.pdf');
-      $('status').textContent='PDF 已下載'
-    }).catch(function(err){
-      $('status').textContent='PDF 失敗：'+err.message
-    })
-  }catch(e){
-    $('status').textContent='PDF 錯誤：'+e.message
-  }
 }
 
 window.onload=function(){

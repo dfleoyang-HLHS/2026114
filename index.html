@@ -12,7 +12,6 @@
     h1{margin:0 0 6px;font-size:clamp(24px,4vw,38px)}header p{margin:0;color:rgba(255,255,255,.9)}
     main{width:min(1180px,94vw);margin:auto;padding-bottom:20px}
     
-    /* 第一區：GitHub 設定（最上方） */
     .section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 4px 12px #00000008}
     .section-title{font-size:18px;font-weight:800;margin:0 0 12px;color:var(--ink);display:flex;align-items:center;gap:8px}
     .section-title::before{content:'';display:block;width:4px;height:20px;background:var(--accent);border-radius:2px}
@@ -31,10 +30,8 @@
     .file-item.selected{border-color:var(--success);background:#dcfce7;color:var(--success);font-weight:700}
     .selected-file{margin-top:10px;padding:10px;background:#dcfce7;border:2px solid var(--success);border-radius:8px;text-align:center;font-weight:700;color:var(--success)}
     
-    /* 第二區：輸入設定 */
     .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
     
-    /* 第三區：按鈕工具列 */
     .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 18px}
     button{border:0;border-radius:10px;padding:10px 15px;font-size:15px;cursor:pointer;background:#e8eef8;color:var(--ink);transition:all .2s;box-shadow:0 2px 4px #00000010}
     button:hover{transform:translateY(-2px);box-shadow:0 4px 8px #00000020}
@@ -54,14 +51,13 @@
     .status.error{background:#fee2e2;color:var(--danger);border:2px solid var(--danger)}
     .status.info{background:#dbeafe;color:var(--accent);border:2px solid var(--accent)}
     
-    /* 第四區：座位表 */
     .room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(12px,3vw,26px);box-shadow:0 8px 30px #1e3a8a0d;overflow-x:auto}
     .front{margin:0 auto 18px;text-align:center;background:#172033;color:white;border-radius:9px;padding:10px;font-weight:700;letter-spacing:.15em}
     .grid{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:10px}
     .seat{min-height:102px;border:2px dashed #cbd5e1;border-radius:13px;padding:9px;background:#fbfdff;transition:all .2s;cursor:grab;user-select:none;touch-action:none}
     .seat.empty{display:grid;place-items:center;color:#94a3b8;cursor:default}
     .seat.dragging{opacity:.35;background:#e2e8f0;transform:scale(.95)}
-    .seat.over{border-color:#dc2626;border-style:solid;background:#fee2e2;transform:scale(1.05);box-shadow:0 0 0 3px #fecaca}
+    .seat.over{border-color:#dc2626!important;border-style:solid!important;background:#fee2e2!important;transform:scale(1.05)!important;box-shadow:0 0 0 3px #fecaca!important}
     .num{font-size:12px;color:var(--muted)}
     .name{font-size:18px;font-weight:800;margin:7px 0 5px}
     .meta{font-size:12px;color:var(--muted)}
@@ -74,9 +70,8 @@
 <header><h1>教室座位表產生器</h1><p>Classroom Seating Chart Generator</p></header>
 <main>
 
-  <!-- 第一區：GitHub 設定（最上方） -->
   <div class="section">
-    <h2 class="section-title">☁️ 從 GitHub 載入座位表(已有資料者)</h2>
+    <h2 class="section-title">☁️ 從 GitHub 載入座位表</h2>
     <div class="github-grid">
       <div><label>使用者名稱</label><input id="ghUser" value="dfleoyang-HLHS"></div>
       <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
@@ -99,9 +94,8 @@
     <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳/載入的檔案名稱為「標題名.json」（例如：教室座位表.json）</p>
   </div>
 
-  <!-- 第二區：輸入設定 -->
   <div class="section">
-    <h2 class="section-title">📋 座位表設定(重新建立者)</h2>
+    <h2 class="section-title">📋 座位表設定</h2>
     <div class="controls">
       <div><label>上傳點名表</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
       <div><label>每列座位數（橫向）</label><select id="cols"><option>5</option><option selected>6</option><option>7</option><option>8</option></select></div>
@@ -110,7 +104,6 @@
     </div>
   </div>
 
-  <!-- 第三區：按鈕工具列 -->
   <div class="toolbar">
     <button class="primary" onclick="autoFill()">✨ 自動填滿</button>
     <button class="success" onclick="saveLocal()">💾 儲存至本機</button>
@@ -122,7 +115,6 @@
 
   <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜列印時選擇「另存為 PDF」</div>
 
-  <!-- 第四區：座位表 -->
   <div class="room">
     <div class="front" id="frontTitle">講台</div>
     <div id="grid" class="grid"></div>

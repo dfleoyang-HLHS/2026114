@@ -2,15 +2,15 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>教室座位表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root{--bg:#f6f8fc;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe3ef;--success:#059669;--warning:#ea580c;--danger:#dc2626}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;-webkit-tap-highlight-color:transparent}
     header{padding:28px 20px 18px;text-align:center;background:linear-gradient(135deg,#1d4ed8,#0f766e);color:#fff}
     h1{margin:0 0 6px;font-size:clamp(24px,4vw,38px)}header p{margin:0;color:rgba(255,255,255,.9)}
-    main{width:min(1180px,94vw);margin:auto}
+    main{width:min(1180px,94vw);margin:auto;padding-bottom:20px}
     .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 18px}
     button{border:0;border-radius:10px;padding:10px 15px;font-size:15px;cursor:pointer;background:#e8eef8;color:var(--ink);transition:all .2s;box-shadow:0 2px 4px #00000010}
     button:hover{transform:translateY(-2px);box-shadow:0 4px 8px #00000020}
@@ -28,10 +28,10 @@
     .status.success{background:#dcfce7;color:var(--success);border:2px solid var(--success)}
     .status.error{background:#fee2e2;color:var(--danger);border:2px solid var(--danger)}
     .status.info{background:#dbeafe;color:var(--accent);border:2px solid var(--accent)}
-    .room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(12px,3vw,26px);box-shadow:0 8px 30px #1e3a8a0d}
+    .room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(12px,3vw,26px);box-shadow:0 8px 30px #1e3a8a0d;overflow-x:auto}
     .front{margin:0 auto 18px;text-align:center;background:#172033;color:white;border-radius:9px;padding:10px;font-weight:700;letter-spacing:.15em}
     .grid{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:10px}
-    .seat{min-height:102px;border:2px dashed #cbd5e1;border-radius:13px;padding:9px;background:#fbfdff;transition:.15s;cursor:grab;user-select:none}
+    .seat{min-height:102px;border:2px dashed #cbd5e1;border-radius:13px;padding:9px;background:#fbfdff;transition:.15s;cursor:grab;user-select:none;touch-action:none}
     .seat.empty{display:grid;place-items:center;color:#94a3b8;cursor:default}
     .seat.dragging{opacity:.35}
     .seat.over{border-color:var(--accent);background:#eff6ff;transform:scale(1.02)}
@@ -44,7 +44,7 @@
     input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe}
     .github{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px}
     .github-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}}
+    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}}
     @media print{header,.toolbar,.controls,.github,.status{display:none!important}.room{border:1px solid #000;box-shadow:none}}
   </style>
 </head>
@@ -70,7 +70,7 @@
     <button class="primary" onclick="loadFromGithub()">📥 載入 GitHub</button>
   </div>
 
-  <div class="status default" id="status">操作：以滑鼠拖放座位即可交換｜列印時選擇「另存為 PDF」</div>
+  <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜列印時選擇「另存為 PDF」</div>
 
   <div class="room">
     <div class="front" id="frontTitle">講台</div>
@@ -91,7 +91,7 @@
 </main>
 <script>
 const students=[];
-let order=[],cols=6,dragged=null;
+let order=[],cols=6,dragged=null,touchDragged=null;
 const $=id=>document.getElementById(id);
 const statusEl=$('status');
 
@@ -111,13 +111,39 @@ function render(){
     const s=no!==null?students.find(x=>x.no===no):null;
     const el=document.createElement('div');
     el.className='seat'+(s?'':' empty');
-    el.draggable=!!s;
     el.dataset.index=i;
     el.innerHTML=s?`<span class="num">座號 ${s.no}</span><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.className)}｜${esc(s.id)}</div>`:`<span class="num">空位</span>`;
     
     if(s){
+      // 桌面版拖放
+      el.draggable=true;
       el.addEventListener('dragstart',()=>{dragged=i;el.classList.add('dragging')});
-      el.addEventListener('dragend',()=>{dragged=null;el.classList.remove('dragging');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'))})
+      el.addEventListener('dragend',()=>{dragged=null;el.classList.remove('dragging');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'))});
+      
+      // 手機版觸控
+      el.addEventListener('touchstart',function(e){
+        touchDragged=i;
+        el.classList.add('dragging');
+        e.preventDefault()
+      },{passive:false});
+      el.addEventListener('touchmove',function(e){
+        e.preventDefault()
+      },{passive:false});
+      el.addEventListener('touchend',function(e){
+        el.classList.remove('dragging');
+        const touch=e.changedTouches[0];
+        const target=document.elementFromPoint(touch.clientX,touch.clientY);
+        if(target&&target.classList.contains('seat')){
+          const targetIndex=Number(target.dataset.index);
+          if(touchDragged!==null&&touchDragged!==targetIndex){
+            [order[touchDragged],order[targetIndex]]=[order[targetIndex],order[touchDragged]];
+            render();
+            showStatus('✅ 已調整座位','success')
+          }
+        }
+        touchDragged=null;
+        e.preventDefault()
+      },{passive:false})
     }
     
     el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
@@ -242,7 +268,7 @@ function uploadToGithub(){
     }else if(r.status===404){
       return null
     }else{
-      throw new Error('HTTP '+r.status)
+      return r.json().then(function(d){throw new Error(d.message||'HTTP '+r.status)})
     }
   }).then(function(sha){
     const body={
@@ -258,6 +284,9 @@ function uploadToGithub(){
       body:JSON.stringify(body)
     })
   }).then(function(r){
+    if(!r.ok){
+      return r.json().then(function(d){throw new Error(d.message||'HTTP '+r.status)})
+    }
     return r.json()
   }).then(function(result){
     if(result.content&&result.content.html_url){
@@ -265,7 +294,7 @@ function uploadToGithub(){
       listGithubFiles();
       console.log('Uploaded to:',result.content.html_url)
     }else{
-      showStatus('❌ 上傳失敗：'+(result.message||'未知錯誤'),'error')
+      showStatus('❌ 上傳失敗：未知錯誤','error')
     }
   }).catch(function(e){
     showStatus('❌ 上傳失敗：'+e.message,'error')

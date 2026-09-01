@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>教室座位表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root{--bg:#f6f8fc;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe3ef}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
@@ -142,8 +142,31 @@ $('fileInput').addEventListener('change',function(e){
 $('cols').addEventListener('change',function(){cols=Number($('cols').value);autoFill()});
 $('title').addEventListener('input',function(e){$('frontTitle').textContent=e.target.value||'講台'});
 
-function saveLocal(){localStorage.setItem('seating-v1',JSON.stringify({students,order,cols}));$('status').textContent='已儲存到本機'}
-function loadLocal(){const r=localStorage.getItem('seating-v1');if(!r){$('status').textContent='本機無資料';return}const d=JSON.parse(r);students.length=0;d.students.forEach(s=>students.push(s));order=d.order;cols=d.cols||6;$('cols').value=cols;render();$('status').textContent='已從本機載入 '+students.length+' 人'}
+function saveLocal(){
+  try{
+    localStorage.setItem('seating-v1',JSON.stringify({students:students,order:order,cols:cols}));
+    $('status').textContent='已儲存到本機'
+  }catch(e){
+    $('status').textContent='儲存失敗：'+e.message
+  }
+}
+
+function loadLocal(){
+  try{
+    const r=localStorage.getItem('seating-v1');
+    if(!r){$('status').textContent='本機無資料';return}
+    const d=JSON.parse(r);
+    students.length=0;
+    d.students.forEach(s=>students.push(s));
+    order=d.order;
+    cols=d.cols||6;
+    $('cols').value=cols;
+    render();
+    $('status').textContent='已從本機載入 '+students.length+' 人'
+  }catch(e){
+    $('status').textContent='載入失敗：'+e.message
+  }
+}
 
 function downloadExcel(){
   const d=order.map((no,i)=>{const s=no!==null?students.find(x=>x.no===no):null;return{'座位':i+1,'班級':s?s.className:'','座號':s?s.number:'','姓名':s?s.name:'','學號':s?s.id:''}});
@@ -153,19 +176,41 @@ function downloadExcel(){
 }
 
 function downloadPDF(){
-  html2canvas($('.room'),{scale:2}).then(function(canvas){
-    const jsPDF=window.jspdf.jsPDF,pdf=new jsPDF('landscape','mm','a4');
-    let w=277,h=canvas.height*w/canvas.width;
-    if(h>180){h=180;w=canvas.width*h/canvas.width}
-    pdf.text($('title').value,14,12);
-    pdf.addImage(canvas.toDataURL(),'PNG',14,18,w,h);
-    pdf.save('seating.pdf')
-  })
+  try{
+    const room=$('.room');
+    html2canvas(room,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF('landscape','mm','a4');
+      const imgData=canvas.toDataURL('image/png');
+      const pdfWidth=280;
+      const pdfHeight=(canvas.height*pdfWidth)/canvas.width;
+      pdf.text($('title').value||'教室座位表',14,12);
+      pdf.addImage(imgData,'PNG',14,20,pdfWidth,pdfHeight);
+      pdf.save('seating.pdf');
+      $('status').textContent='PDF 已下載'
+    }).catch(function(err){
+      $('status').textContent='PDF 失敗：'+err.message
+    })
+  }catch(e){
+    $('status').textContent='PDF 錯誤：'+e.message
+  }
 }
 
 window.onload=function(){
   const saved=load();
-  if(saved){order=saved;const d=localStorage.getItem('seating-v1');if(d){const data=JSON.parse(d);students.length=0;data.students.forEach(s=>students.push(s));cols=data.cols||6;$('cols').value=cols;render();$('status').textContent='從本機載入 '+students.length+' 人'}}
+  if(saved){
+    order=saved;
+    const d=localStorage.getItem('seating-v1');
+    if(d){
+      const data=JSON.parse(d);
+      students.length=0;
+      data.students.forEach(s=>students.push(s));
+      cols=data.cols||6;
+      $('cols').value=cols;
+      render();
+      $('status').textContent='從本機載入 '+students.length+' 人'
+    }
+  }
 };
 </script>
 </body>

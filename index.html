@@ -71,7 +71,7 @@
 <main>
 
   <div class="section">
-    <h2 class="section-title">☁️ 從 GitHub 載入座位表</h2>
+    <h2 class="section-title">☁️ 從 GitHub 載入座位表(已上傳資料者)</h2>
     <div class="github-grid">
       <div><label>使用者名稱</label><input id="ghUser" value="dfleoyang-HLHS"></div>
       <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
@@ -95,9 +95,9 @@
   </div>
 
   <div class="section">
-    <h2 class="section-title">📋 座位表設定</h2>
+    <h2 class="section-title">📋 新建座位表、座位表設定</h2>
     <div class="controls">
-      <div><label>上傳點名表</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
+      <div><label>上傳點名表(需有班級、座號、姓名、學號之欄位)</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
       <div><label>每列座位數（橫向）</label><select id="cols"><option>5</option><option selected>6</option><option>7</option><option>8</option></select></div>
       <div><label>排列方式</label><select id="order"><option value="row">由前到後</option><option value="column">由左到右</option><option value="number">依座號</option></select></div>
       <div><label>標題</label><input id="title" value="教室座位表"></div>
@@ -369,7 +369,7 @@ function listGithubFiles(){
     
     if(jsonCount>0){
       fileList.style.display='block';
-      showStatus('✅ 已找到 '+jsonCount+' 個 JSON 檔案，請點選下方檔案載入','success')
+      showStatus('✅ 已找到 '+jsonCount+' 個 JSON 檔案，請點選第一區的下方檔案載入','success')
     }else{
       fileList.style.display='none';
       showStatus('⚠️ 未找到 JSON 檔案','info')

@@ -50,6 +50,8 @@
     .file-item{padding:10px;background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:all .2s;text-align:center;font-size:14px}
     .file-item:hover{border-color:var(--accent);background:#eff6ff;transform:translateY(-2px);box-shadow:0 4px 8px #00000010}
     .file-item:active{transform:translateY(0)}
+    .file-item.selected{border-color:var(--success);background:#dcfce7;color:var(--success);font-weight:700}
+    .selected-file{margin-top:10px;padding:10px;background:#dcfce7;border:2px solid var(--success);border-radius:8px;text-align:center;font-weight:700;color:var(--success)}
     @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}.file-items{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
     @media print{header,.toolbar,.controls,.github,.status,.file-list{display:none!important}.room{border:1px solid #000;box-shadow:none}}
   </style>
@@ -96,12 +98,15 @@
     <div class="file-list" id="fileList" style="display:none">
       <h4>📁 選擇要載入的座位表（共 <span id="fileCount">0</span> 個）</h4>
       <div class="file-items" id="fileItems"></div>
+      <div class="selected-file" id="selectedFile" style="display:none">
+        ✅ 已選擇：<span id="selectedFileName"></span>
+      </div>
     </div>
   </div>
 </main>
 <script>
 const students=[];
-let order=[],cols=6,dragged=null,touchDragged=null;
+let order=[],cols=6,dragged=null,touchDragged=null,selectedFilename=null;
 const $=id=>document.getElementById(id);
 const statusEl=$('status');
 
@@ -125,20 +130,16 @@ function render(){
     el.innerHTML=s?`<span class="num">座號 ${s.no}</span><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.className)}｜${esc(s.id)}</div>`:`<span class="num">空位</span>`;
     
     if(s){
-      // 桌面版拖放
       el.draggable=true;
       el.addEventListener('dragstart',()=>{dragged=i;el.classList.add('dragging')});
       el.addEventListener('dragend',()=>{dragged=null;el.classList.remove('dragging');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'))});
       
-      // 手機版觸控
       el.addEventListener('touchstart',function(e){
         touchDragged=i;
         el.classList.add('dragging');
         e.preventDefault()
       },{passive:false});
-      el.addEventListener('touchmove',function(e){
-        e.preventDefault()
-      },{passive:false});
+      el.addEventListener('touchmove',function(e){e.preventDefault()},{passive:false});
       el.addEventListener('touchend',function(e){
         el.classList.remove('dragging');
         const touch=e.changedTouches[0];
@@ -281,11 +282,7 @@ function uploadToGithub(){
       return r.json().then(function(d){throw new Error(d.message||'HTTP '+r.status)})
     }
   }).then(function(sha){
-    const body={
-      message:'Update seating chart: '+title,
-      content:content,
-      branch:branch
-    };
+    const body={message:'Update seating chart: '+title,content:content,branch:branch};
     if(sha)body.sha=sha;
     
     return fetch(api,{
@@ -345,8 +342,7 @@ function listGithubFiles(){
         item.className='file-item';
         item.textContent=f.name;
         item.onclick=function(){
-          $('ghFile').value=f.name;
-          loadFromGithubFile(f.name);
+          selectFile(f.name,item);
         };
         fileItems.appendChild(item)
       }
@@ -364,6 +360,19 @@ function listGithubFiles(){
   }).catch(function(e){
     showStatus('❌ 列出失敗：'+e.message,'error')
   })
+}
+
+function selectFile(filename,element){
+  selectedFilename=filename;
+  $('selectedFileName').textContent=filename;
+  $('selectedFile').style.display='block';
+  
+  document.querySelectorAll('.file-item').forEach(function(item){
+    item.classList.remove('selected')
+  });
+  element.classList.add('selected');
+  
+  showStatus('✅ 已選擇：'+filename+'，請點選「📥 載入選擇的檔案」','success')
 }
 
 function loadFromGithubFile(filename){
@@ -406,7 +415,7 @@ function loadFromGithubFile(filename){
 }
 
 function loadFromGithub(){
-  const filename=$('ghFile').value.trim();
+  const filename=selectedFilename;
   if(filename){
     loadFromGithubFile(filename)
   }else{
@@ -429,15 +438,6 @@ window.onload=function(){
       showStatus('✅ 從本機載入 '+students.length+' 人','success')
     }
   }
-  // 自動列出 GitHub 檔案
-  setTimeout(function(){
-    const user=$('ghUser').value.trim();
-    const repo=$('ghRepo').value.trim();
-    const token=$('ghToken').value.trim();
-    if(user&&repo&&token){
-      listGithubFiles()
-    }
-  },500)
 };
 </script>
 </body>

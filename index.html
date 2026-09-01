@@ -58,11 +58,11 @@
     .seat.empty{display:grid;place-items:center;color:#94a3b8;cursor:default}
     .seat.dragging{opacity:.35;background:#e2e8f0;transform:scale(.95)}
     .seat.over{border-color:#dc2626!important;border-style:solid!important;background:#fee2e2!important;transform:scale(1.05)!important;box-shadow:0 0 0 3px #fecaca!important}
-    .num{font-size:12px;color:var(--muted)}
-    .name{font-size:18px;font-weight:800;margin:7px 0 5px}
-    .meta{font-size:12px;color:var(--muted)}
+    .seat-num{font-size:20px;font-weight:900;color:var(--accent);margin-bottom:4px}
+    .seat-name{font-size:17px;font-weight:800;margin:6px 0 4px}
+    .seat-meta{font-size:12px;color:var(--muted)}
     
-    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}.file-items{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.seat-name{font-size:15px}.seat-meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}.file-items{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
     @media print{header,.toolbar,.controls,.github,.status,.file-list,.section{display:none!important}.room{border:1px solid #000;box-shadow:none}}
   </style>
 </head>
@@ -71,7 +71,7 @@
 <main>
 
   <div class="section">
-    <h2 class="section-title">☁️ 從 GitHub 載入座位表(已上傳資料者)</h2>
+    <h2 class="section-title">☁️ 從 GitHub 載入座位表</h2>
     <div class="github-grid">
       <div><label>使用者名稱</label><input id="ghUser" value="dfleoyang-HLHS"></div>
       <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
@@ -95,9 +95,9 @@
   </div>
 
   <div class="section">
-    <h2 class="section-title">📋 新建座位表、座位表設定</h2>
+    <h2 class="section-title">📋 座位表設定</h2>
     <div class="controls">
-      <div><label>上傳點名表(含班級、座號、姓名、學號)</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
+      <div><label>上傳點名表</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
       <div><label>每列座位數（橫向）</label><select id="cols"><option>5</option><option selected>6</option><option>7</option><option>8</option></select></div>
       <div><label>排列方式</label><select id="order"><option value="row">由前到後</option><option value="column">由左到右</option><option value="number">依座號</option></select></div>
       <div><label>標題</label><input id="title" value="教室座位表"></div>
@@ -113,7 +113,7 @@
     <button class="danger" onclick="clearSeats()">🗑️ 清除</button>
   </div>
 
-  <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜列印時選擇「另存為 PDF」</div>
+  <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜座位號碼為您的原始座號</div>
 
   <div class="room">
     <div class="front" id="frontTitle">講台</div>
@@ -139,14 +139,19 @@ function render(){
   grid.innerHTML='';
   grid.style.gridTemplateColumns='repeat('+cols+',minmax(90px,1fr))';
   
-  order.forEach((no,i)=>{
-    const s=no!==null?students.find(x=>x.no===no):null;
+  order.forEach((studentId,i)=>{
+    const s=studentId!==null?students.find(x=>x.id===studentId):null;
     const el=document.createElement('div');
     el.className='seat'+(s?'':' empty');
     el.dataset.index=i;
-    el.innerHTML=s?`<span class="num">座號 ${s.no}</span><div class="name">${esc(s.name)}</div><div class="meta">${esc(s.className)}｜${esc(s.id)}</div>`:`<span class="num">空位</span>`;
     
     if(s){
+      el.innerHTML=`
+        <div class="seat-num">${s.number||'-'}</div>
+        <div class="seat-name">${esc(s.name)}</div>
+        <div class="seat-meta">${esc(s.className)}｜${esc(s.id)}</div>
+      `;
+      
       el.draggable=true;
       el.addEventListener('dragstart',()=>{dragged=i;el.classList.add('dragging')});
       el.addEventListener('dragend',()=>{dragged=null;el.classList.remove('dragging');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'))});
@@ -172,6 +177,8 @@ function render(){
         touchDragged=null;
         e.preventDefault()
       },{passive:false})
+    }else{
+      el.innerHTML=`<div class="seat-num" style="color:#94a3b8">空位</div>`
     }
     
     el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
@@ -187,11 +194,21 @@ function esc(v){return String(v||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 function autoFill(){
   order=[];
   const list=[...students];
-  if($('order').value==='number')list.sort((a,b)=>(a.className+'-'+a.number).localeCompare(b.className+'-'+b.number));
+  
+  if($('order').value==='number'){
+    list.sort((a,b)=>{
+      const aNum=parseInt(a.number)||0;
+      const bNum=parseInt(b.number)||0;
+      return aNum-bNum
+    })
+  }
+  
   const total=cols*Math.ceil(list.length/cols);
-  for(let i=0;i<total;i++){order.push(i<list.length?list[i].no:null)}
+  for(let i=0;i<total;i++){
+    order.push(i<list.length?list[i].id:null)
+  }
   render();
-  showStatus('✅ 已自動排列','success')
+  showStatus('✅ 已自動排列（使用您的原始座號）','success')
 }
 
 function clearSeats(){
@@ -215,14 +232,13 @@ $('fileInput').addEventListener('change',function(e){
       const ix={id:h.findIndex(v=>v.includes('學號')),cls:h.findIndex(v=>v.includes('班級')),no:h.findIndex(v=>v.includes('座號')),name:h.findIndex(v=>v.includes('姓名'))};
       if(ix.id<0||ix.cls<0||ix.no<0||ix.name<0)throw new Error('缺少必要欄位');
       students.length=0;
-      let no=1;
       rows.slice(hi+1).forEach(function(r){
         const id=String(r[ix.id]||'').trim(),cls=String(r[ix.cls]||'').trim(),num=String(r[ix.no]||'').trim(),name=String(r[ix.name]||'').trim();
-        if(id&&name)students.push({no:no++,id,className:cls,number:num,name})
+        if(id&&name)students.push({id,className:cls,number:num,name})
       });
       cols=Number($('cols').value);
       autoFill();
-      showStatus('✅ 已載入 '+students.length+' 位學生','success')
+      showStatus('✅ 已載入 '+students.length+' 位學生（保留原始座號）','success')
     }catch(err){showStatus('❌ 失敗：'+err.message,'error')}
   };
   r.readAsArrayBuffer(f)
@@ -258,11 +274,20 @@ function loadLocal(){
 }
 
 function downloadExcel(){
-  const d=order.map((no,i)=>{const s=no!==null?students.find(x=>x.no===no):null;return{'座位':i+1,'班級':s?s.className:'','座號':s?s.number:'','姓名':s?s.name:'','學號':s?s.id:''}});
+  const d=order.map((studentId,i)=>{
+    const s=studentId!==null?students.find(x=>x.id===studentId):null;
+    return{
+      '座位':i+1,
+      '班級':s?s.className:'',
+      '座號':s?s.number:'',
+      '姓名':s?s.name:'',
+      '學號':s?s.id:''
+    }
+  });
   const ws=XLSX.utils.json_to_sheet(d),wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'座位');
   XLSX.writeFile(wb,'seating.xlsx');
-  showStatus('📊 Excel 已下載','success')
+  showStatus('📊 Excel 已下載（保留原始座號）','success')
 }
 
 function uploadToGithub(){
@@ -369,7 +394,7 @@ function listGithubFiles(){
     
     if(jsonCount>0){
       fileList.style.display='block';
-      showStatus('✅ 已找到 '+jsonCount+' 個 JSON 檔案，請點選第一區的下方檔案載入','success')
+      showStatus('✅ 已找到 '+jsonCount+' 個 JSON 檔案，請點選下方檔案載入','success')
     }else{
       fileList.style.display='none';
       showStatus('⚠️ 未找到 JSON 檔案','info')

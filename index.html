@@ -6,15 +6,28 @@
   <title>教室座位表</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    :root{--bg:#f6f8fc;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe3ef}
+    :root{--bg:#f6f8fc;--card:#fff;--ink:#172033;--muted:#64748b;--accent:#2563eb;--line:#dbe3ef;--success:#059669;--warning:#ea580c;--danger:#dc2626}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
     header{padding:28px 20px 18px;text-align:center;background:linear-gradient(135deg,#1d4ed8,#0f766e);color:#fff}
     h1{margin:0 0 6px;font-size:clamp(24px,4vw,38px)}header p{margin:0;color:rgba(255,255,255,.9)}
     main{width:min(1180px,94vw);margin:auto}
     .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 18px}
-    button{border:0;border-radius:10px;padding:10px 15px;font-size:15px;cursor:pointer;background:#e8eef8;color:var(--ink)}
-    button.primary{background:var(--accent);color:white}
-    .status{color:var(--muted);font-size:14px;text-align:center;margin:10px 0}
+    button{border:0;border-radius:10px;padding:10px 15px;font-size:15px;cursor:pointer;background:#e8eef8;color:var(--ink);transition:all .2s;box-shadow:0 2px 4px #00000010}
+    button:hover{transform:translateY(-2px);box-shadow:0 4px 8px #00000020}
+    button:active{transform:translateY(0);box-shadow:0 1px 2px #00000010}
+    button.primary{background:var(--accent);color:#fff}
+    button.primary:hover{background:#1d4ed8}
+    button.success{background:var(--success);color:#fff}
+    button.success:hover{background:#047857}
+    button.warning{background:var(--warning);color:#fff}
+    button.warning:hover{background:#c2410c}
+    button.danger{background:var(--danger);color:#fff}
+    button.danger:hover{background:#b91c1c}
+    .status{padding:12px;border-radius:10px;text-align:center;margin:10px 0;font-weight:700;transition:all .3s}
+    .status.default{background:var(--card);color:var(--muted);border:1px solid var(--line)}
+    .status.success{background:#dcfce7;color:var(--success);border:2px solid var(--success)}
+    .status.error{background:#fee2e2;color:var(--danger);border:2px solid var(--danger)}
+    .status.info{background:#dbeafe;color:var(--accent);border:2px solid var(--accent)}
     .room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(12px,3vw,26px);box-shadow:0 8px 30px #1e3a8a0d}
     .front{margin:0 auto 18px;text-align:center;background:#172033;color:white;border-radius:9px;padding:10px;font-weight:700;letter-spacing:.15em}
     .grid{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:10px}
@@ -27,7 +40,8 @@
     .meta{font-size:12px;color:var(--muted)}
     .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
     label{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
-    input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px}
+    input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;transition:border .2s}
+    input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe}
     .github{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px}
     .github-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
     @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}}
@@ -45,22 +59,23 @@
   </div>
 
   <div class="toolbar">
-    <button class="primary" onclick="autoFill()">自動填滿</button>
-    <button onclick="clearSeats()">清除</button>
-    <button class="primary" onclick="downloadExcel()">Excel</button>
-    <button class="primary" onclick="window.print()">列印 / PDF</button>
-    <button class="primary" onclick="saveLocal()">儲存本機</button>
-    <button onclick="loadLocal()">從本機載入</button>
+    <button class="primary" onclick="autoFill()">✨ 自動填滿</button>
+    <button class="danger" onclick="clearSeats()">🗑️ 清除</button>
+    <button class="success" onclick="downloadExcel()">📊 Excel</button>
+    <button class="warning" onclick="window.print()">🖨️ 列印 / PDF</button>
+    <button class="success" onclick="saveLocal()">💾 儲存本機</button>
+    <button class="primary" onclick="loadLocal()">📂 從本機載入</button>
     <button class="primary" onclick="uploadToGithub()">📤 上傳 GitHub</button>
-    <button class="primary" onclick="loadFromGithub()">📥 從 GitHub 載入</button>
+    <button class="success" onclick="listGithubFiles()">📋 列出檔案</button>
+    <button class="primary" onclick="loadFromGithub()">📥 載入 GitHub</button>
   </div>
+
+  <div class="status default" id="status">操作：以滑鼠拖放座位即可交換｜列印時選擇「另存為 PDF」</div>
 
   <div class="room">
     <div class="front" id="frontTitle">講台</div>
     <div id="grid" class="grid"></div>
   </div>
-
-  <div class="status" id="status">操作：以滑鼠拖放座位即可交換｜列印時選擇「另存為 PDF」</div>
 
   <div class="github">
     <h3 style="margin:0 0 10px">GitHub 設定</h3>
@@ -71,10 +86,6 @@
       <div><label>分支</label><input id="ghBranch" value="main"></div>
       <div><label>選擇檔案</label><select id="ghFile"><option value="">-- 選擇或輸入檔案名 --</option></select></div>
     </div>
-    <div style="margin-top:10px">
-      <button onclick="listGithubFiles()">📋 列出 GitHub 檔案</button>
-      <button onclick="loadFromGithub()">📥 載入選擇的檔案</button>
-    </div>
     <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳/載入的檔案名稱為「標題名.json」（例如：教室座位表.json）</p>
   </div>
 </main>
@@ -82,6 +93,12 @@
 const students=[];
 let order=[],cols=6,dragged=null;
 const $=id=>document.getElementById(id);
+const statusEl=$('status');
+
+function showStatus(msg,type){
+  statusEl.textContent=msg;
+  statusEl.className='status '+(type||'default')
+}
 
 function load(){try{let x=JSON.parse(localStorage.getItem('seating-v1'));return Array.isArray(x)?x:null}catch(e){return null}}
 
@@ -105,7 +122,7 @@ function render(){
     
     el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('over')});
     el.addEventListener('dragleave',()=>el.classList.remove('over'));
-    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');if(dragged!==null&&dragged!==i){[order[dragged],order[i]]=[order[i],order[dragged]];render();$('status').textContent='已調整座位'}});
+    el.addEventListener('drop',e=>{e.preventDefault();el.classList.remove('over');if(dragged!==null&&dragged!==i){[order[dragged],order[i]]=[order[i],order[dragged]];render();showStatus('✅ 已調整座位','success')}});
     
     grid.appendChild(el)
   })
@@ -120,7 +137,7 @@ function autoFill(){
   const total=cols*Math.ceil(list.length/cols);
   for(let i=0;i<total;i++){order.push(i<list.length?list[i].no:null)}
   render();
-  $('status').textContent='已自動排列'
+  showStatus('✅ 已自動排列','success')
 }
 
 function clearSeats(){
@@ -128,7 +145,7 @@ function clearSeats(){
   const total=cols*Math.ceil(students.length/cols);
   for(let i=0;i<total;i++){order.push(null)}
   render();
-  $('status').textContent='已清除'
+  showStatus('🗑️ 已清除所有座位','info')
 }
 
 $('fileInput').addEventListener('change',function(e){
@@ -151,8 +168,8 @@ $('fileInput').addEventListener('change',function(e){
       });
       cols=Number($('cols').value);
       autoFill();
-      $('status').textContent='已載入 '+students.length+' 位學生'
-    }catch(err){$('status').textContent='失敗：'+err.message}
+      showStatus('✅ 已載入 '+students.length+' 位學生','success')
+    }catch(err){showStatus('❌ 失敗：'+err.message,'error')}
   };
   r.readAsArrayBuffer(f)
 });
@@ -163,16 +180,16 @@ $('title').addEventListener('input',function(e){$('frontTitle').textContent=e.ta
 function saveLocal(){
   try{
     localStorage.setItem('seating-v1',JSON.stringify({students:students,order:order,cols:cols}));
-    $('status').textContent='已儲存到本機'
+    showStatus('💾 已儲存到本機瀏覽器','success')
   }catch(e){
-    $('status').textContent='儲存失敗：'+e.message
+    showStatus('❌ 儲存失敗：'+e.message,'error')
   }
 }
 
 function loadLocal(){
   try{
     const r=localStorage.getItem('seating-v1');
-    if(!r){$('status').textContent='本機無資料';return}
+    if(!r){showStatus('📂 本機無資料','info');return}
     const d=JSON.parse(r);
     students.length=0;
     d.students.forEach(s=>students.push(s));
@@ -180,9 +197,9 @@ function loadLocal(){
     cols=d.cols||6;
     $('cols').value=cols;
     render();
-    $('status').textContent='已從本機載入 '+students.length+' 人'
+    showStatus('✅ 已從本機載入 '+students.length+' 人','success')
   }catch(e){
-    $('status').textContent='載入失敗：'+e.message
+    showStatus('❌ 載入失敗：'+e.message,'error')
   }
 }
 
@@ -190,7 +207,8 @@ function downloadExcel(){
   const d=order.map((no,i)=>{const s=no!==null?students.find(x=>x.no===no):null;return{'座位':i+1,'班級':s?s.className:'','座號':s?s.number:'','姓名':s?s.name:'','學號':s?s.id:''}});
   const ws=XLSX.utils.json_to_sheet(d),wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'座位');
-  XLSX.writeFile(wb,'seating.xlsx')
+  XLSX.writeFile(wb,'seating.xlsx');
+  showStatus('📊 Excel 已下載','success')
 }
 
 function uploadToGithub(){
@@ -202,16 +220,16 @@ function uploadToGithub(){
   const filename=title+'.json';
   
   if(!user||!repo||!token){
-    $('status').textContent='請填寫 GitHub 使用者名稱、儲存庫和 Token';
+    showStatus('❌ 請填寫 GitHub 使用者名稱、儲存庫和 Token','error');
     return
   }
   
   if(students.length===0){
-    $('status').textContent='無學生資料，請先上傳點名表';
+    showStatus('❌ 無學生資料，請先上傳點名表','error');
     return
   }
   
-  $('status').textContent='上傳中...';
+  showStatus('📤 上傳中...','info');
   
   const data={students:students,order:order,cols:cols,title:title};
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
@@ -243,14 +261,14 @@ function uploadToGithub(){
     return r.json()
   }).then(function(result){
     if(result.content&&result.content.html_url){
-      $('status').textContent='上傳成功！檔案：'+filename;
+      showStatus('✅ 上傳成功！檔案：'+filename,'success');
       listGithubFiles();
       console.log('Uploaded to:',result.content.html_url)
     }else{
-      $('status').textContent='上傳失敗：'+(result.message||'未知錯誤')
+      showStatus('❌ 上傳失敗：'+(result.message||'未知錯誤'),'error')
     }
   }).catch(function(e){
-    $('status').textContent='上傳失敗：'+e.message
+    showStatus('❌ 上傳失敗：'+e.message,'error')
   })
 }
 
@@ -261,11 +279,11 @@ function listGithubFiles(){
   const branch=$('ghBranch').value.trim()||'main';
   
   if(!user||!repo){
-    $('status').textContent='請填寫 GitHub 使用者名稱和儲存庫';
+    showStatus('❌ 請填寫 GitHub 使用者名稱和儲存庫','error');
     return
   }
   
-  $('status').textContent='列出檔案中...';
+  showStatus('📋 列出檔案中...','info');
   
   const api='https://api.github.com/repos/'+user+'/'+repo+'/contents?ref='+encodeURIComponent(branch);
   const headers=token?{Authorization:'Bearer '+token}:{};
@@ -284,9 +302,9 @@ function listGithubFiles(){
         select.appendChild(opt)
       }
     });
-    $('status').textContent='已找到 '+select.options.length+' 個 JSON 檔案'
+    showStatus('✅ 已找到 '+select.options.length+' 個 JSON 檔案','success')
   }).catch(function(e){
-    $('status').textContent='列出失敗：'+e.message
+    showStatus('❌ 列出失敗：'+e.message,'error')
   })
 }
 
@@ -297,11 +315,11 @@ function loadFromGithub(){
   const filename=$('ghFile').value.trim()||($('title').value.trim()||'教室座位表')+'.json';
   
   if(!user||!repo){
-    $('status').textContent='請填寫 GitHub 使用者名稱和儲存庫';
+    showStatus('❌ 請填寫 GitHub 使用者名稱和儲存庫','error');
     return
   }
   
-  $('status').textContent='載入中...';
+  showStatus('📥 載入中...','info');
   
   const url='https://raw.githubusercontent.com/'+user+'/'+repo+'/'+encodeURIComponent(branch)+'/'+encodeURIComponent(filename);
   
@@ -324,9 +342,9 @@ function loadFromGithub(){
     }
     $('cols').value=cols;
     render();
-    $('status').textContent='已載入 '+students.length+' 人（'+filename+'）'
+    showStatus('✅ 已載入 '+students.length+' 人（'+filename+'）','success')
   }).catch(function(e){
-    $('status').textContent='載入失敗：'+e.message
+    showStatus('❌ 載入失敗：'+e.message,'error')
   })
 }
 
@@ -342,7 +360,7 @@ window.onload=function(){
       cols=data.cols||6;
       $('cols').value=cols;
       render();
-      $('status').textContent='從本機載入 '+students.length+' 人'
+      showStatus('✅ 從本機載入 '+students.length+' 人','success')
     }
   }
 };

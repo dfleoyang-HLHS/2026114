@@ -11,6 +11,30 @@
     header{padding:28px 20px 18px;text-align:center;background:linear-gradient(135deg,#1d4ed8,#0f766e);color:#fff}
     h1{margin:0 0 6px;font-size:clamp(24px,4vw,38px)}header p{margin:0;color:rgba(255,255,255,.9)}
     main{width:min(1180px,94vw);margin:auto;padding-bottom:20px}
+    
+    /* 第一區：GitHub 設定（最上方） */
+    .section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 4px 12px #00000008}
+    .section-title{font-size:18px;font-weight:800;margin:0 0 12px;color:var(--ink);display:flex;align-items:center;gap:8px}
+    .section-title::before{content:'';display:block;width:4px;height:20px;background:var(--accent);border-radius:2px}
+    
+    .github-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    label{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
+    input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;transition:border .2s}
+    input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe}
+    
+    .file-list{margin-top:14px;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)}
+    .file-list h4{margin:0 0 10px;font-size:15px;color:var(--ink)}
+    .file-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;max-height:300px;overflow-y:auto}
+    .file-item{padding:10px;background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:all .2s;text-align:center;font-size:14px}
+    .file-item:hover{border-color:var(--accent);background:#eff6ff;transform:translateY(-2px);box-shadow:0 4px 8px #00000010}
+    .file-item:active{transform:translateY(0)}
+    .file-item.selected{border-color:var(--success);background:#dcfce7;color:var(--success);font-weight:700}
+    .selected-file{margin-top:10px;padding:10px;background:#dcfce7;border:2px solid var(--success);border-radius:8px;text-align:center;font-weight:700;color:var(--success)}
+    
+    /* 第二區：輸入設定 */
+    .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+    
+    /* 第三區：按鈕工具列 */
     .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 18px}
     button{border:0;border-radius:10px;padding:10px 15px;font-size:15px;cursor:pointer;background:#e8eef8;color:var(--ink);transition:all .2s;box-shadow:0 2px 4px #00000010}
     button:hover{transform:translateY(-2px);box-shadow:0 4px 8px #00000020}
@@ -23,11 +47,14 @@
     button.warning:hover{background:#c2410c}
     button.danger{background:var(--danger);color:#fff}
     button.danger:hover{background:#b91c1c}
+    
     .status{padding:12px;border-radius:10px;text-align:center;margin:10px 0;font-weight:700;transition:all .3s}
     .status.default{background:var(--card);color:var(--muted);border:1px solid var(--line)}
     .status.success{background:#dcfce7;color:var(--success);border:2px solid var(--success)}
     .status.error{background:#fee2e2;color:var(--danger);border:2px solid var(--danger)}
     .status.info{background:#dbeafe;color:var(--accent);border:2px solid var(--accent)}
+    
+    /* 第四區：座位表 */
     .room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(12px,3vw,26px);box-shadow:0 8px 30px #1e3a8a0d;overflow-x:auto}
     .front{margin:0 auto 18px;text-align:center;background:#172033;color:white;border-radius:9px;padding:10px;font-weight:700;letter-spacing:.15em}
     .grid{display:grid;grid-template-columns:repeat(6,minmax(90px,1fr));gap:10px}
@@ -38,62 +65,29 @@
     .num{font-size:12px;color:var(--muted)}
     .name{font-size:18px;font-weight:800;margin:7px 0 5px}
     .meta{font-size:12px;color:var(--muted)}
-    .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
-    label{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
-    input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;transition:border .2s}
-    input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe}
-    .github{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px}
-    .github-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-    .file-list{margin-top:14px;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)}
-    .file-list h4{margin:0 0 10px;font-size:15px;color:var(--ink)}
-    .file-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;max-height:300px;overflow-y:auto}
-    .file-item{padding:10px;background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:all .2s;text-align:center;font-size:14px}
-    .file-item:hover{border-color:var(--accent);background:#eff6ff;transform:translateY(-2px);box-shadow:0 4px 8px #00000010}
-    .file-item:active{transform:translateY(0)}
-    .file-item.selected{border-color:var(--success);background:#dcfce7;color:var(--success);font-weight:700}
-    .selected-file{margin-top:10px;padding:10px;background:#dcfce7;border:2px solid var(--success);border-radius:8px;text-align:center;font-weight:700;color:var(--success)}
+    
     @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}.file-items{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
-    @media print{header,.toolbar,.controls,.github,.status,.file-list{display:none!important}.room{border:1px solid #000;box-shadow:none}}
+    @media print{header,.toolbar,.controls,.github,.status,.file-list,.section{display:none!important}.room{border:1px solid #000;box-shadow:none}}
   </style>
 </head>
 <body>
 <header><h1>教室座位表產生器</h1><p>Classroom Seating Chart Generator</p></header>
 <main>
-  <div class="controls">
-    <div><label>上傳點名表</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
-    <div><label>每排座位數</label><select id="cols"><option>5</option><option selected>6</option><option>7</option><option>8</option></select></div>
-    <div><label>排列方式</label><select id="order"><option value="row">由前到後</option><option value="column">由左到右</option><option value="number">依座號</option></select></div>
-    <div><label>標題</label><input id="title" value="教室座位表"></div>
-  </div>
 
-  <div class="toolbar">
-    <button class="primary" onclick="autoFill()">✨ 自動填滿</button>
-    <button class="danger" onclick="clearSeats()">🗑️ 清除</button>
-    <button class="success" onclick="downloadExcel()">📊 Excel</button>
-    <button class="warning" onclick="window.print()">🖨️ 列印 / PDF</button>
-    <button class="success" onclick="saveLocal()">💾 儲存本機</button>
-    <button class="primary" onclick="loadLocal()">📂 從本機載入</button>
-    <button class="primary" onclick="uploadToGithub()">📤 上傳 GitHub</button>
-    <button class="success" onclick="listGithubFiles()">📋 重新整理檔案</button>
-    <button class="primary" onclick="loadFromGithub()">📥 載入選擇的檔案</button>
-  </div>
-
-  <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜列印時選擇「另存為 PDF」</div>
-
-  <div class="room">
-    <div class="front" id="frontTitle">講台</div>
-    <div id="grid" class="grid"></div>
-  </div>
-
-  <div class="github">
-    <h3 style="margin:0 0 10px">GitHub 設定</h3>
+  <!-- 第一區：GitHub 設定（最上方） -->
+  <div class="section">
+    <h2 class="section-title">☁️ 從 GitHub 載入座位表</h2>
     <div class="github-grid">
       <div><label>使用者名稱</label><input id="ghUser" value="dfleoyang-HLHS"></div>
       <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
       <div><label>Token</label><input id="ghToken" type="password" placeholder="ghp_..."></div>
       <div><label>分支</label><input id="ghBranch" value="main"></div>
     </div>
-    <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳/載入的檔案名稱為「標題名.json」（例如：教室座位表.json）</p>
+    
+    <div class="toolbar" style="margin:14px 0 0">
+      <button class="success" onclick="listGithubFiles()">📋 重新整理檔案</button>
+      <button class="primary" onclick="loadFromGithub()">📥 載入選擇的檔案</button>
+    </div>
     
     <div class="file-list" id="fileList" style="display:none">
       <h4>📁 選擇要載入的座位表（共 <span id="fileCount">0</span> 個）</h4>
@@ -102,7 +96,38 @@
         ✅ 已選擇：<span id="selectedFileName"></span>
       </div>
     </div>
+    <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳/載入的檔案名稱為「標題名.json」（例如：教室座位表.json）</p>
   </div>
+
+  <!-- 第二區：輸入設定 -->
+  <div class="section">
+    <h2 class="section-title">📋 座位表設定</h2>
+    <div class="controls">
+      <div><label>上傳點名表</label><input id="fileInput" type="file" accept=".xlsx,.xls,.csv"></div>
+      <div><label>每列座位數（橫向）</label><select id="cols"><option>5</option><option selected>6</option><option>7</option><option>8</option></select></div>
+      <div><label>排列方式</label><select id="order"><option value="row">由前到後</option><option value="column">由左到右</option><option value="number">依座號</option></select></div>
+      <div><label>標題</label><input id="title" value="教室座位表"></div>
+    </div>
+  </div>
+
+  <!-- 第三區：按鈕工具列 -->
+  <div class="toolbar">
+    <button class="primary" onclick="autoFill()">✨ 自動填滿</button>
+    <button class="success" onclick="saveLocal()">💾 儲存至本機</button>
+    <button class="primary" onclick="uploadToGithub()">☁️ 上傳到 GitHub</button>
+    <button class="warning" onclick="window.print()">🖨️ 列印 PDF</button>
+    <button class="success" onclick="downloadExcel()">📊 輸出 Excel</button>
+    <button class="danger" onclick="clearSeats()">🗑️ 清除</button>
+  </div>
+
+  <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜列印時選擇「另存為 PDF」</div>
+
+  <!-- 第四區：座位表 -->
+  <div class="room">
+    <div class="front" id="frontTitle">講台</div>
+    <div id="grid" class="grid"></div>
+  </div>
+
 </main>
 <script>
 const students=[];
@@ -266,7 +291,7 @@ function uploadToGithub(){
     return
   }
   
-  showStatus('📤 上傳中...','info');
+  showStatus('☁️ 上傳中...','info');
   
   const data={students:students,order:order,cols:cols,title:title};
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));

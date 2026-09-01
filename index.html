@@ -44,8 +44,14 @@
     input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe}
     .github{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px}
     .github-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}}
-    @media print{header,.toolbar,.controls,.github,.status{display:none!important}.room{border:1px solid #000;box-shadow:none}}
+    .file-list{margin-top:14px;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)}
+    .file-list h4{margin:0 0 10px;font-size:15px;color:var(--ink)}
+    .file-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;max-height:300px;overflow-y:auto}
+    .file-item{padding:10px;background:#fff;border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:all .2s;text-align:center;font-size:14px}
+    .file-item:hover{border-color:var(--accent);background:#eff6ff;transform:translateY(-2px);box-shadow:0 4px 8px #00000010}
+    .file-item:active{transform:translateY(0)}
+    @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}.toolbar{gap:6px}button{padding:8px 12px;font-size:14px}.file-items{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+    @media print{header,.toolbar,.controls,.github,.status,.file-list{display:none!important}.room{border:1px solid #000;box-shadow:none}}
   </style>
 </head>
 <body>
@@ -66,8 +72,8 @@
     <button class="success" onclick="saveLocal()">💾 儲存本機</button>
     <button class="primary" onclick="loadLocal()">📂 從本機載入</button>
     <button class="primary" onclick="uploadToGithub()">📤 上傳 GitHub</button>
-    <button class="success" onclick="listGithubFiles()">📋 列出檔案</button>
-    <button class="primary" onclick="loadFromGithub()">📥 載入 GitHub</button>
+    <button class="success" onclick="listGithubFiles()">📋 重新整理檔案</button>
+    <button class="primary" onclick="loadFromGithub()">📥 載入選擇的檔案</button>
   </div>
 
   <div class="status default" id="status">操作：拖放座位即可交換（手機：長按後拖曳）｜列印時選擇「另存為 PDF」</div>
@@ -84,9 +90,13 @@
       <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
       <div><label>Token</label><input id="ghToken" type="password" placeholder="ghp_..."></div>
       <div><label>分支</label><input id="ghBranch" value="main"></div>
-      <div><label>選擇檔案</label><select id="ghFile"><option value="">-- 選擇或輸入檔案名 --</option></select></div>
     </div>
     <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳/載入的檔案名稱為「標題名.json」（例如：教室座位表.json）</p>
+    
+    <div class="file-list" id="fileList" style="display:none">
+      <h4>📁 選擇要載入的座位表（共 <span id="fileCount">0</span> 個）</h4>
+      <div class="file-items" id="fileItems"></div>
+    </div>
   </div>
 </main>
 <script>
@@ -321,27 +331,45 @@ function listGithubFiles(){
     if(!r.ok)throw new Error('HTTP '+r.status);
     return r.json()
   }).then(function(files){
-    const select=$('ghFile');
-    select.innerHTML='<option value="">-- 選擇檔案 --</option>';
+    const fileList=$('fileList');
+    const fileItems=$('fileItems');
+    const fileCount=$('fileCount');
+    
+    fileItems.innerHTML='';
+    let jsonCount=0;
+    
     files.forEach(function(f){
       if(f.name.endsWith('.json')){
-        const opt=document.createElement('option');
-        opt.value=f.name;
-        opt.textContent=f.name;
-        select.appendChild(opt)
+        jsonCount++;
+        const item=document.createElement('div');
+        item.className='file-item';
+        item.textContent=f.name;
+        item.onclick=function(){
+          $('ghFile').value=f.name;
+          loadFromGithubFile(f.name);
+        };
+        fileItems.appendChild(item)
       }
     });
-    showStatus('✅ 已找到 '+select.options.length+' 個 JSON 檔案','success')
+    
+    fileCount.textContent=jsonCount;
+    
+    if(jsonCount>0){
+      fileList.style.display='block';
+      showStatus('✅ 已找到 '+jsonCount+' 個 JSON 檔案，請點選下方檔案載入','success')
+    }else{
+      fileList.style.display='none';
+      showStatus('⚠️ 未找到 JSON 檔案','info')
+    }
   }).catch(function(e){
     showStatus('❌ 列出失敗：'+e.message,'error')
   })
 }
 
-function loadFromGithub(){
+function loadFromGithubFile(filename){
   const user=$('ghUser').value.trim();
   const repo=$('ghRepo').value.trim();
   const branch=$('ghBranch').value.trim()||'main';
-  const filename=$('ghFile').value.trim()||($('title').value.trim()||'教室座位表')+'.json';
   
   if(!user||!repo){
     showStatus('❌ 請填寫 GitHub 使用者名稱和儲存庫','error');
@@ -377,6 +405,15 @@ function loadFromGithub(){
   })
 }
 
+function loadFromGithub(){
+  const filename=$('ghFile').value.trim();
+  if(filename){
+    loadFromGithubFile(filename)
+  }else{
+    showStatus('❌ 請先選擇或輸入檔案名稱','error')
+  }
+}
+
 window.onload=function(){
   const saved=load();
   if(saved){
@@ -392,6 +429,15 @@ window.onload=function(){
       showStatus('✅ 從本機載入 '+students.length+' 人','success')
     }
   }
+  // 自動列出 GitHub 檔案
+  setTimeout(function(){
+    const user=$('ghUser').value.trim();
+    const repo=$('ghRepo').value.trim();
+    const token=$('ghToken').value.trim();
+    if(user&&repo&&token){
+      listGithubFiles()
+    }
+  },500)
 };
 </script>
 </body>

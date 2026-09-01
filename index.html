@@ -28,8 +28,10 @@
     .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
     label{display:block;font-weight:700;font-size:.85rem;margin-bottom:4px}
     input,select{width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px}
+    .github{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px}
+    .github-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
     @media(max-width:650px){.grid{gap:6px}.seat{min-height:82px;padding:6px}.name{font-size:15px}.meta{font-size:11px}}
-    @media print{header,.toolbar,.controls,.status{display:none!important}.room{border:1px solid #000;box-shadow:none}}
+    @media print{header,.toolbar,.controls,.github,.status{display:none!important}.room{border:1px solid #000;box-shadow:none}}
   </style>
 </head>
 <body>
@@ -49,6 +51,7 @@
     <button class="primary" onclick="window.print()">列印 / PDF</button>
     <button class="primary" onclick="saveLocal()">儲存本機</button>
     <button onclick="loadLocal()">從本機載入</button>
+    <button class="primary" onclick="uploadToGithub()">📤 上傳 GitHub</button>
   </div>
 
   <div class="room">
@@ -57,6 +60,17 @@
   </div>
 
   <div class="status" id="status">操作：以滑鼠拖放座位即可交換｜列印時選擇「另存為 PDF」</div>
+
+  <div class="github">
+    <h3 style="margin:0 0 10px">GitHub 上傳設定</h3>
+    <div class="github-grid">
+      <div><label>使用者名稱</label><input id="ghUser" value="dfleoyang-HLHS"></div>
+      <div><label>儲存庫</label><input id="ghRepo" value="2026114"></div>
+      <div><label>Token</label><input id="ghToken" type="password" placeholder="ghp_..."></div>
+      <div><label>分支</label><input id="ghBranch" value="main"></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin:10px 0 0">上傳的檔案名稱將為「標題名.json」（例如：教室座位表.json）</p>
+  </div>
 </main>
 <script>
 const students=[];
@@ -171,6 +185,69 @@ function downloadExcel(){
   const ws=XLSX.utils.json_to_sheet(d),wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'座位');
   XLSX.writeFile(wb,'seating.xlsx')
+}
+
+function uploadToGithub(){
+  const user=$('ghUser').value.trim();
+  const repo=$('ghRepo').value.trim();
+  const token=$('ghToken').value.trim();
+  const branch=$('ghBranch').value.trim()||'main';
+  const title=$('title').value.trim()||'教室座位表';
+  const filename=title+'.json';
+  
+  if(!user||!repo||!token){
+    $('status').textContent='請填寫 GitHub 使用者名稱、儲存庫和 Token';
+    return
+  }
+  
+  if(students.length===0){
+    $('status').textContent='無學生資料，請先上傳點名表';
+    return
+  }
+  
+  $('status').textContent='上傳中...';
+  
+  const data={students:students,order:order,cols:cols,title:title};
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  
+  const api='https://api.github.com/repos/'+user+'/'+repo+'/contents/'+encodeURIComponent(filename);
+  
+  // 先檢查檔案是否存在
+  fetch(api+'?ref='+branch,{headers:{Authorization:'Bearer '+token}}).then(function(r){
+    if(r.ok){
+      // 檔案存在，取得 SHA
+      return r.json().then(function(d){return d.sha})
+    }else if(r.status===404){
+      // 檔案不存在
+      return null
+    }else{
+      throw new Error('HTTP '+r.status)
+    }
+  }).then(function(sha){
+    const body={
+      message:'Update seating chart: '+title,
+      content:content,
+      branch:branch
+    };
+    if(sha)body.sha=sha;
+    
+    return fetch(api,{
+      method:'PUT',
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    })
+  }).then(function(r){
+    return r.json()
+  }).then(function(result){
+    if(result.content&&result.content.html_url){
+      $('status').textContent='上傳成功！檔案：'+filename;
+      console.log('Uploaded to:',result.content.html_url)
+    }else{
+      $('status').textContent='上傳失敗：'+(result.message||'未知錯誤')
+    }
+  }).catch(function(e){
+    $('status').textContent='上傳失敗：'+e.message
+  })
 }
 
 window.onload=function(){
